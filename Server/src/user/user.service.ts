@@ -5,6 +5,7 @@ import { signUpDto } from './dto/signup.dto';
 import { user, userDocument } from './schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+import { loginDto } from './dto/login.dto';
 @Injectable()
 export class UserService {
 
@@ -47,6 +48,43 @@ export class UserService {
         msg: "error while signup"
       })
       throw error;
+    }
+  }
+
+  async login(request: loginDto){
+    try {
+      let checkUserExist = await this.userModel.findOne({email: request.email});
+      if(!checkUserExist){
+        return new HttpException('inavlid email or password',HttpStatus.BAD_REQUEST)
+      }
+
+      let passwordCompare = await bcrypt.compare(request.password,checkUserExist.password)
+      if(!passwordCompare){
+        return new HttpException('inavlid email or password',HttpStatus.BAD_REQUEST)
+      }
+     
+      let tokenData = {
+        id: checkUserExist.id,
+        name: checkUserExist.name,
+      }
+
+      const token = await this.JwtService.signAsync(tokenData);
+
+      let responseObject = {
+        code: 200,
+        message: "Success",
+        data : {
+          token,
+          ...tokenData
+        },
+      }
+      return responseObject;
+
+    } catch (error) {
+      console.log({
+        error,
+
+      })
     }
   }
 }
